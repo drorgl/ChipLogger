@@ -1,0 +1,16 @@
+{
+    "name": "logger",
+    "version": "1.0.0",
+    "keywords": "logger",
+    "description": "logger",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/x/x"
+    },
+    "build": {
+        "includeDir": "include"
+    },
+    "dependencies":[
+        
+    ]
+}
