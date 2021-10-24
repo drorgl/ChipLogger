@@ -1,15 +1,17 @@
 {
     "name": "logger",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "keywords": "logger",
     "description": "logger",
     "repository": {
         "type": "git",
-        "url": "https://github.com/x/x"
+        "url": "https://github.com/drorgl/ChipLogger"
     },
     "build": {
         "includeDir": "include"
     },
+    "license":"Apache-2.0",
+    "frameworks": "*",
     "dependencies":[
         
     ]

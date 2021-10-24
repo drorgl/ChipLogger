@@ -15,20 +15,22 @@
 #define MAXIMUM_ENABLED_LOG_LEVEL (LOG_VERBOSE)
 #endif
 
+// #error hkflsjld
+
 // Enable built-in checks in queue.h in debug builds
 #ifndef CONFIG_LOG_INVARIANTS
-#define CONFIG_LOG_INVARIANTS 1
+#define CONFIG_LOG_INVARIANTS 0
 #endif
 // Enable consistency checks and cache statistics in this file.
 
 #ifndef CONFIG_LOG_BUILTIN_CHECKS
-#define CONFIG_LOG_BUILTIN_CHECKS 1
+#define CONFIG_LOG_BUILTIN_CHECKS 0
 #endif
 
 
 // Number of tags to be cached. Must be 2**n - 1, n >= 2.
 #ifndef CONFIG_LOG_TAG_CACHE_SIZE
-#define CONFIG_LOG_TAG_CACHE_SIZE 31
+#define CONFIG_LOG_TAG_CACHE_SIZE 15
 #endif
 
 /**

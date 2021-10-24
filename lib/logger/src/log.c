@@ -39,24 +39,35 @@
 #include <stdbool.h>
 #include <stdarg.h>
 #include <string.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <stdio.h>
-#include <assert.h>
+// #include <assert.h>
 #include <ctype.h>
 #include "log.h"
 #include "log_private.h"
+#include <stddef.h>
 
-#ifndef NDEBUG
+// #define __ASSERT_USE_STDERR // do this before including assert.h
+#include <assert.h>
+
+// void __assert(const char *func, const char *file, int line, const char *failedexpr)
+// {
+//     // print out whatever you like here, function name, filename, line#, expression that failed.
+//     printf("assert! %s %s %d %s\r\n", func, file, line, failedexpr);
+//     abort(); // halt after outputting information
+// }
+
 // Enable built-in checks in queue.h in debug builds
+#if CONFIG_LOG_INVARIANTS == 1
 #define INVARIANTS
+#endif
 // Enable consistency checks and cache statistics in this file.
+
+#if CONFIG_LOG_BUILTIN_CHECKS == 1
 #define LOG_BUILTIN_CHECKS
 #endif
 
 #include "queue.h"
-
-// Number of tags to be cached. Must be 2**n - 1, n >= 2.
-#define TAG_CACHE_SIZE 31
 
 typedef struct
 {
@@ -70,12 +81,12 @@ typedef struct uncached_tag_entry_
     SLIST_ENTRY(uncached_tag_entry_)
     entries;
     uint8_t level; // uint8_t as uint8_t
-    char tag[0];   // beginning of a zero-terminated string
+    char tag[0];     // beginning of a zero-terminated string
 } uncached_tag_entry_t;
 
 static uint8_t s_log_default_level = DEFAULT_LOG_LEVEL;
 static SLIST_HEAD(log_tags_head, uncached_tag_entry_) s_log_tags = SLIST_HEAD_INITIALIZER(s_log_tags);
-static cached_tag_entry_t s_log_cache[TAG_CACHE_SIZE];
+static cached_tag_entry_t s_log_cache[CONFIG_LOG_TAG_CACHE_SIZE];
 static uint32_t s_log_cache_max_generation = 0;
 static uint32_t s_log_cache_entry_count = 0;
 static vprintf_like_t s_log_print_func = &vprintf;
@@ -139,6 +150,7 @@ void log_level_set(const char *tag, uint8_t level)
             return;
         }
         new_entry->level = (uint8_t)level;
+        // printf("copy from %p %s %d bytes\r\n", new_entry->tag, tag, tag_len);
         strncpy(new_entry->tag, tag, tag_len);
         SLIST_INSERT_HEAD(&s_log_tags, new_entry, entries);
     }
@@ -251,7 +263,7 @@ static inline bool get_cached_log_level(const char *tag, uint8_t *level)
     //  to the cache; this option was chosen because code is much simpler,
     //  and the unfair behavior of cache will show it self at most once, when
     //  it has just been filled)
-    if (s_log_cache_entry_count == TAG_CACHE_SIZE)
+    if (s_log_cache_entry_count == CONFIG_LOG_TAG_CACHE_SIZE)
     {
         // Update item generation
         s_log_cache[i].generation = s_log_cache_max_generation++;
@@ -267,7 +279,7 @@ static inline void add_to_cache(const char *tag, uint8_t level)
     // First consider the case when cache is not filled yet.
     // In this case, just add new entry at the end.
     // This happens to satisfy binary min-heap ordering.
-    if (s_log_cache_entry_count < TAG_CACHE_SIZE)
+    if (s_log_cache_entry_count < CONFIG_LOG_TAG_CACHE_SIZE)
     {
         s_log_cache[s_log_cache_entry_count] = (cached_tag_entry_t){
             .generation = generation,
@@ -311,7 +323,7 @@ static inline bool should_output(uint8_t level_for_message, uint8_t level_for_ta
 
 static void heap_bubble_down(int index)
 {
-    while (index < TAG_CACHE_SIZE / 2)
+    while (index < CONFIG_LOG_TAG_CACHE_SIZE / 2)
     {
         int left_index = index * 2 + 1;
         int right_index = left_index + 1;
@@ -359,13 +371,15 @@ static void log_buffer_hex_internal(const char *tag, const void *buffer, uint16_
     {
         return;
     }
+    const char *buffer_ptr = buffer;
     char temp_buffer[BYTES_PER_LINE + 3]; //for not-byte-accessible memory
     char hex_buffer[3 * BYTES_PER_LINE + 1];
-    const char *ptr_line;
     int bytes_cur_line;
 
     do
     {
+        char *ptr_line;
+
         if (buff_len > BYTES_PER_LINE)
         {
             bytes_cur_line = BYTES_PER_LINE;
@@ -375,7 +389,7 @@ static void log_buffer_hex_internal(const char *tag, const void *buffer, uint16_
             bytes_cur_line = buff_len;
         }
         //use memcpy to get around alignment issue
-        memcpy(temp_buffer, buffer, (bytes_cur_line + 3) / 4 * 4);
+        memcpy(temp_buffer, buffer_ptr, (bytes_cur_line + 3) / 4 * 4);
         ptr_line = temp_buffer;
 
         for (int i = 0; i < bytes_cur_line; i++)
@@ -384,7 +398,7 @@ static void log_buffer_hex_internal(const char *tag, const void *buffer, uint16_
         }
         log_write(log_level, tag, "%s\n", hex_buffer);
         // LOG_LEVEL(log_level, tag, "%s", hex_buffer);
-        buffer += bytes_cur_line;
+        buffer_ptr += bytes_cur_line;
         buff_len -= bytes_cur_line;
     } while (buff_len);
 }
@@ -396,13 +410,16 @@ static void log_buffer_char_internal(const char *tag, const void *buffer, uint16
     {
         return;
     }
+    const char *buffer_ptr = buffer;
+
     char temp_buffer[BYTES_PER_LINE + 3]; //for not-byte-accessible memory
     char char_buffer[BYTES_PER_LINE + 1];
-    const char *ptr_line;
     int bytes_cur_line;
 
     do
     {
+        char *ptr_line;
+
         if (buff_len > BYTES_PER_LINE)
         {
             bytes_cur_line = BYTES_PER_LINE;
@@ -412,7 +429,7 @@ static void log_buffer_char_internal(const char *tag, const void *buffer, uint16
             bytes_cur_line = buff_len;
         }
         //use memcpy to get around alignment issue
-        memcpy(temp_buffer, buffer, (bytes_cur_line + 3) / 4 * 4);
+        memcpy(temp_buffer, buffer_ptr, (bytes_cur_line + 3) / 4 * 4);
         ptr_line = temp_buffer;
 
         for (int i = 0; i < bytes_cur_line; i++)
@@ -421,7 +438,7 @@ static void log_buffer_char_internal(const char *tag, const void *buffer, uint16
         }
         log_write(log_level, tag, "%s\n", char_buffer);
         // LOG_LEVEL(log_level, tag, "%s", char_buffer);
-        buffer += bytes_cur_line;
+        buffer_ptr += bytes_cur_line;
         buff_len -= bytes_cur_line;
     } while (buff_len);
 }
@@ -434,18 +451,21 @@ static void log_buffer_hexdump_internal(const char *tag, const void *buffer,
     {
         return;
     }
+    const char *buffer_ptr = buffer;
+
     char temp_buffer[BYTES_PER_LINE + 3]; //for not-byte-accessible memory
-    const char *ptr_line;
     //format: field[length]
     // ADDR[10]+"   "+DATA_HEX[8*3]+" "+DATA_HEX[8*3]+"  |"+DATA_CHAR[8]+"|"
-    char hd_buffer[sizeof(void*) + 3 + 10 + 3 + BYTES_PER_LINE * 3 + 3 + 1 + BYTES_PER_LINE + 1 + 3];
-    char *ptr_hd;
+    char hd_buffer[sizeof(void *) + 3 + 10 + 3 + BYTES_PER_LINE * 3 + 3 + 1 + BYTES_PER_LINE + 1 + 3];
     int bytes_cur_line;
 
-    const void * buffer_start = buffer;
+    const char *buffer_start = buffer_ptr;
 
     do
     {
+        char *ptr_hd;
+        char *ptr_line;
+
         if (buff_len > BYTES_PER_LINE)
         {
             bytes_cur_line = BYTES_PER_LINE;
@@ -455,11 +475,11 @@ static void log_buffer_hexdump_internal(const char *tag, const void *buffer,
             bytes_cur_line = buff_len;
         }
         //use memcpy to get around alignment issue
-        memcpy(temp_buffer, buffer, (bytes_cur_line + 3) / 4 * 4);
+        memcpy(temp_buffer, buffer_ptr, (bytes_cur_line + 3) / 4 * 4);
         ptr_line = temp_buffer;
         ptr_hd = hd_buffer;
 
-        ptr_hd += sprintf(ptr_hd, "%p (%08X)", buffer, buffer - buffer_start);
+        ptr_hd += sprintf(ptr_hd, "%p (%08X)", buffer_ptr, buffer_ptr - buffer_start);
         for (int i = 0; i < BYTES_PER_LINE; i++)
         {
             if ((i & 7) == 0)
@@ -488,13 +508,13 @@ static void log_buffer_hexdump_internal(const char *tag, const void *buffer,
             }
         }
         ptr_hd += sprintf(ptr_hd, "|");
-        printf("printing %d out of %d\r\n", ptr_hd - hd_buffer, sizeof(hd_buffer));
+        // //printf("printing %d out of %d\r\n", ptr_hd - hd_buffer, sizeof(hd_buffer));
         // (char * )*va_arg(list, char * ) =  hd_buffer;
         // log_writev(log_level, tag, format, list);
         log_write(log_level, tag, "%s\n", hd_buffer);
 
         // LOG_LEVEL(log_level, tag, "%s", hd_buffer);
-        buffer += bytes_cur_line;
+        buffer_ptr += bytes_cur_line;
         buff_len -= bytes_cur_line;
     } while (buff_len);
 }

@@ -50,7 +50,7 @@ bool string_contains(std::string str, std::string substr)
 int mock_vprintf(const char *format, va_list list)
 {
     // vprintf(format, list);
-    char buffer[1024];
+    char buffer[128];
     int len = vsnprintf(buffer, sizeof(buffer), format, list);
     logs.push_back(std::string(buffer));
     return len;
@@ -95,7 +95,7 @@ TEST_CASE("log info")
     LOGI("TAG", "hello %s", "world");
 
     CHECK(logs.size() == 1);
-    CHECK(logs[0].find("A (") != std::string::npos);
+    CHECK(logs[0].find("I (") != std::string::npos);
     CHECK(logs[0].find("TAG") != std::string::npos);
     CHECK(logs[0].find("logger_tests.cpp") != std::string::npos);
     CHECK(logs[0].find("hello world") != std::string::npos);

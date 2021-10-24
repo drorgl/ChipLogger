@@ -17,8 +17,14 @@
 
 #include <stdint.h>
 #include <stdarg.h>
+
+#ifdef LOG_CONFIG
+#include LOG_CONFIG
+#else
 #include "log_config.h"
+#endif
 #include <stdio.h>
+#include <inttypes.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -148,7 +154,7 @@ extern "C"
  * @param  level    level of the log
  *
  */
-// #define LOG_BUFFER_HEX_LEVEL(tag, buffer, buff_len, level) 
+// #define LOG_BUFFER_HEX_LEVEL(tag, buffer, buff_len, level)
 //     log_buffer_hex(tag, buffer, buff_len, level);
 
 /**
@@ -160,7 +166,7 @@ extern "C"
  * @param  level    level of the log
  *
  */
-// #define LOG_BUFFER_CHAR_LEVEL(tag, buffer, buff_len, level) 
+// #define LOG_BUFFER_CHAR_LEVEL(tag, buffer, buff_len, level)
 //     log_buffer_char(tag, buffer, buff_len, level);
 
 /**
@@ -179,7 +185,7 @@ extern "C"
  * @param buff_len length of buffer in bytes
  * @param level level of the log
  */
-// #define LOG_BUFFER_HEXDUMP(tag, buffer, buff_len, level) 
+// #define LOG_BUFFER_HEXDUMP(tag, buffer, buff_len, level)
 //     log_buffer_hexdump(tag, buffer, buff_len, level);
 
 /**
@@ -192,14 +198,14 @@ extern "C"
  * @see ``log_buffer_hex_level``
  *
  */
-// #define LOG_BUFFER_HEX(tag, buffer, buff_len, format, ...)         
-//     do                                                             
-//     {                                                              
-//         if (DEFAULT_LOG_LEVEL >= LOG_INFO)                         
-//         {                                                          
-//             printf("(D%d,%d)", DEFAULT_LOG_LEVEL, LOG_INFO);       
-//             LOG_BUFFER_HEX_LEVEL(tag, buffer, buff_len, LOG_INFO); 
-//         }                                                          
+// #define LOG_BUFFER_HEX(tag, buffer, buff_len, format, ...)
+//     do
+//     {
+//         if (DEFAULT_LOG_LEVEL >= LOG_INFO)
+//         {
+//             printf("(D%d,%d)", DEFAULT_LOG_LEVEL, LOG_INFO);
+//             LOG_BUFFER_HEX_LEVEL(tag, buffer, buff_len, LOG_INFO);
+//         }
 //     } while (0)
 
 /**
@@ -253,11 +259,14 @@ extern "C"
 #define LOG_RESET_COLOR
 #endif //CONFIG_LOG_COLORS
 
+#define LOG_FUNCTION_FILENAME_PROVIDER __FILE__
+#define LOG_FUNCTION_LINE_PROVIDER __LINE__
+
 #if CONFIG_LOG_FILENAME
 #define LOG_FORMAT_FILENAME "%s"
-#define LOG_VALUE_FILENAME __FILE__
+#define LOG_VALUE_FILENAME LOG_FUNCTION_FILENAME_PROVIDER
 #define LOG_FORMAT_LINE ":%d"
-#define LOG_VALUE_LINE __LINE__
+#define LOG_VALUE_LINE LOG_FUNCTION_LINE_PROVIDER
 #else
 #define LOG_FORMAT_FILENAME "%s"
 #define LOG_VALUE_FILENAME ""
@@ -265,17 +274,19 @@ extern "C"
 #define LOG_VALUE_LINE ""
 #endif
 
+#define LOG_FUNCTION_VALUE_PROVIDER __FUNCTION__
+
 //__func__ / __FUNCTION__
 #if CONFIG_LOG_FUNCTION_NAME
 #define LOG_FORMAT_FUNCTION_NAME " [%s]"
-#define LOG_VALUE_FUNCTION_NAME __FUNCTION__
+#define LOG_VALUE_FUNCTION_NAME LOG_FUNCTION_VALUE_PROVIDER
 #else
 #define LOG_FORMAT_FUNCTION_NAME "%s"
 #define LOG_VALUE_FUNCTION_NAME ""
 #endif
 
-#define GET_LOG_FORMAT(letter, format) LOG_COLOR_##letter #letter " (%u) %s: " LOG_FORMAT_FILENAME LOG_FORMAT_LINE LOG_FORMAT_FUNCTION_NAME " " format LOG_RESET_COLOR "\n"
-#define LOG_SYSTEM_TIME_FORMAT(letter, format) LOG_COLOR_##letter #letter " (%s) %s: " LOG_FORMAT_FILENAME LOG_FORMAT_LINE LOG_FORMAT_FUNCTION_NAME " " format LOG_RESET_COLOR "\n"
+#define GET_LOG_FORMAT(letter, format) LOG_COLOR_##letter #letter " (%" PRIu32 ") %s: " LOG_FORMAT_FILENAME LOG_FORMAT_LINE LOG_FORMAT_FUNCTION_NAME " " format LOG_RESET_COLOR "\n"
+#define LOG_SYSTEM_TIME_FORMAT(letter, format) LOG_COLOR_##letter #letter " (%" PRIu32 ") %s: " LOG_FORMAT_FILENAME LOG_FORMAT_LINE LOG_FORMAT_FUNCTION_NAME " " format LOG_RESET_COLOR "\n"
 
     /** @endcond */
 

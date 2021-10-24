@@ -1,3 +1,5 @@
 .pio
 .vscode/
 sdkconfig.esp32.old
+doctest-*.tar.gz
+logger-*.tar.gz

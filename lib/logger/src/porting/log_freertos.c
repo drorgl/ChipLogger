@@ -12,7 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#ifdef LOG_CONFIG
+#include LOG_CONFIG
+#else
 #include "log_config.h"
+#endif
 
 #ifdef CONFIG_LOG_FREERTOS
 #include <stdint.h>
