@@ -6,6 +6,9 @@
 
 // #include <avr/pgmspace.h>
 
+void setUp(){}
+void tearDown(){}
+
 static char log_lines[4][105];
 static uint8_t current_index;
 
