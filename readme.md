@@ -59,6 +59,24 @@ typedef int (*vprintf_like_t)(const char *, va_list);
 vprintf_like_t log_set_vprintf(vprintf_like_t func);
 ```
 
+If you need fine-grained control over which log message goes to which destination
+you can implement it in the writev function 
+```c
+typedef void (*log_writev_t)(uint8_t level, const char *tag, const char *format, va_list args);
+log_writev_t log_set_writev(log_writev_t func);
+
+//example
+void mock_log_writev(uint8_t level,
+                const char *tag,
+                const char *format,
+                va_list args)
+{
+    char buffer[100];
+    vsnprintf(buffer, sizeof(buffer), format, args);
+    //do something with level/tag
+}
+```
+
 # ESP32
 Works and tests pass
 
@@ -147,6 +165,9 @@ Copy log_config.h into "include" folder and add to `build_flags`:
 
 
 # Changelog
+
+* 1.0.2
+- add log_set_writev for more fine-grained logging
 
 * 1.0.1
 - add external configuration option

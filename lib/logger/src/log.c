@@ -90,6 +90,7 @@ static cached_tag_entry_t s_log_cache[CONFIG_LOG_TAG_CACHE_SIZE];
 static uint32_t s_log_cache_max_generation = 0;
 static uint32_t s_log_cache_entry_count = 0;
 static vprintf_like_t s_log_print_func = &vprintf;
+static log_writev_t s_writev_func = &log_writev;
 
 #ifdef LOG_BUILTIN_CHECKS
 static uint32_t s_log_cache_misses = 0;
@@ -102,6 +103,14 @@ static void heap_bubble_down(int index);
 static inline void heap_swap(int i, int j);
 static inline bool should_output(uint8_t level_for_message, uint8_t level_for_tag);
 static inline void clear_log_level_list(void);
+
+log_writev_t log_set_writev(log_writev_t func){
+    log_impl_lock();
+    log_writev_t orig_func = s_writev_func;
+    s_writev_func = func;
+    log_impl_unlock();
+    return orig_func;
+}
 
 vprintf_like_t log_set_vprintf(vprintf_like_t func)
 {
@@ -185,7 +194,7 @@ void clear_log_level_list(void)
 #endif
 }
 
-static bool is_tag_level_visible(uint8_t level, const char *tag)
+bool is_tag_level_visible(uint8_t level, const char *tag)
 {
     if (!log_impl_lock_timeout())
     {
@@ -234,7 +243,7 @@ void log_write(uint8_t level,
 {
     va_list list;
     va_start(list, format);
-    log_writev(level, tag, format, list);
+    s_writev_func(level, tag, format, list);
     va_end(list);
 }
 

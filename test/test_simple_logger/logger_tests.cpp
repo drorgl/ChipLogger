@@ -12,9 +12,19 @@ void tearDown(){}
 static char log_lines[4][105];
 static uint8_t current_index;
 
+struct log_writes_t{
+    uint8_t level;
+    char tag[50];
+    char line[100];
+};
+
+static log_writes_t log_item[4];
+static uint8_t current_log_item_index;
+
 void clear_log()
 {
     current_index = 0;
+    current_log_item_index = 0;
 }
 
 void log_line(const char *line)
@@ -73,6 +83,17 @@ int mock_vprintf(const char *format, va_list list)
     int len = vsnprintf(buffer, sizeof(buffer), format, list);
     log_line(buffer);
     return len;
+}
+
+void mock_log_writev(uint8_t level,
+                const char *tag,
+                const char *format,
+                va_list args)
+{
+    struct log_writes_t * next_write = &log_item[current_log_item_index++];
+    next_write->level = level;
+    strncpy(next_write->tag, tag, 49);
+    vsnprintf(next_write->line, 99, format, args);
 }
 
 void logger_log_verbose()
@@ -283,6 +304,48 @@ void logger_specific_tag_is_overwritten_by_default_log_level()
     TEST_ASSERT_TRUE(current_index == 0);
 }
 
+
+
+
+
+void logger_is_tag_level_visible_default_log_level_is_overwritten_by_specific_tag()
+{
+    log_level_set("*", LOG_ERROR);
+    log_level_set("TAG2", LOG_INFO);
+
+    TEST_ASSERT_FALSE(is_tag_level_visible(LOG_INFO, "TAG1"));
+    TEST_ASSERT_TRUE(is_tag_level_visible(LOG_INFO, "TAG2"));
+}
+
+void logger_is_tag_level_visible_specific_tag_is_overwritten_by_default_log_level()
+{
+    log_level_set("TAG2", LOG_INFO);
+    log_level_set("*", LOG_ERROR);
+
+    TEST_ASSERT_FALSE(is_tag_level_visible(LOG_INFO, "TAG1"));
+    TEST_ASSERT_FALSE(is_tag_level_visible(LOG_INFO, "TAG2"));
+}
+
+
+void logger_log_writev_verbose()
+{
+    clear_log();
+    log_level_set("*", LOG_VERBOSE);
+    log_set_vprintf(mock_vprintf);
+    log_set_writev(mock_log_writev);
+
+    LOGV("TAG", "hello %s", "world");
+
+    TEST_ASSERT_TRUE_MESSAGE(current_log_item_index == 1, "index");
+    TEST_ASSERT_EQUAL(LOG_VERBOSE, log_item[0].level);
+    TEST_ASSERT_EQUAL_STRING_MESSAGE("TAG", log_item[0].tag, "tag");
+
+    TEST_ASSERT_TRUE_MESSAGE(string_contains(log_item[0].line, "V ("), "v");
+    TEST_ASSERT_TRUE_MESSAGE(string_contains(log_item[0].line, "TAG"), "tag");
+    TEST_ASSERT_TRUE_MESSAGE(string_contains(log_item[0].line, "logger_tests.cpp"), "filename");
+    TEST_ASSERT_TRUE_MESSAGE(string_contains(log_item[0].line, "hello world"), "contents");
+}
+
 void run_all_tests()
 {
     UNITY_BEGIN();
@@ -303,5 +366,11 @@ void run_all_tests()
 
     RUN_TEST(logger_default_log_level_is_overwritten_by_specific_tag);
     RUN_TEST(logger_specific_tag_is_overwritten_by_default_log_level);
+
+    RUN_TEST(logger_is_tag_level_visible_default_log_level_is_overwritten_by_specific_tag);
+    RUN_TEST(logger_is_tag_level_visible_specific_tag_is_overwritten_by_default_log_level);
+
+    RUN_TEST(logger_log_writev_verbose);
+
     UNITY_END();
 }

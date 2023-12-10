@@ -25,6 +25,7 @@
 #endif
 #include <stdio.h>
 #include <inttypes.h>
+#include <stdbool.h>
 
 #ifdef __cplusplus
 extern "C"
@@ -43,6 +44,7 @@ extern "C"
 #define LOG_VERBOSE 5 /*!< Bigger chunks of debugging information, or frequent messages which can potentially flood the output. */
 
     typedef int (*vprintf_like_t)(const char *, va_list);
+    typedef void (*log_writev_t)(uint8_t level, const char *tag, const char *format, va_list args);
 
     /**
  * @brief Set log level for given tag
@@ -63,6 +65,17 @@ extern "C"
  * levels will be shown.
  */
     void log_level_set(const char *tag, uint8_t level);
+
+
+
+/**
+ * @brief set write function
+ * 
+ * @param func new function used for writing
+ * @return log_writev_t old function used for writing
+ */
+    log_writev_t log_set_writev(log_writev_t func);
+
 
     /**
  * @brief Set function used to output log entries
@@ -115,6 +128,16 @@ extern "C"
  * @return timestamp, in milliseconds
  */
     uint32_t log_early_timestamp(void);
+
+
+/**
+ * @brief checks if the tag and level should be printed out
+ * 
+ * @param level log level
+ * @param tag tag name
+ * @return true if the tag and level should be logged, false otherwise
+ */
+    bool is_tag_level_visible(uint8_t level, const char *tag);
 
     /**
  * @brief Write message into the log
