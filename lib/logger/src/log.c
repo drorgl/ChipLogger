@@ -394,7 +394,7 @@ static void log_buffer_hex_internal(const char *tag, const void *buffer, uint16_
 
         for (int i = 0; i < bytes_cur_line; i++)
         {
-            sprintf(hex_buffer + 3 * i, "%02x ", ptr_line[i]);
+            sprintf(hex_buffer + 3 * i, "%02x ", (uint8_t)ptr_line[i]);
         }
         log_write(log_level, tag, "%s\n", hex_buffer);
         // LOG_LEVEL(log_level, tag, "%s", hex_buffer);
@@ -488,7 +488,7 @@ static void log_buffer_hexdump_internal(const char *tag, const void *buffer,
             }
             if (i < bytes_cur_line)
             {
-                ptr_hd += sprintf(ptr_hd, " %02x", ptr_line[i]);
+                ptr_hd += sprintf(ptr_hd, " %02x", (uint8_t)ptr_line[i]);
             }
             else
             {
