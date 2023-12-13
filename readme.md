@@ -23,15 +23,12 @@ pio package publish lib/logger
 # Changelog
 
 * 1.0.2
-- add log_set_writev for more fine-grained logging
-
+    - add log_set_writev for more fine-grained logging
 
 * 1.0.1
-- add external configuration option
-- fix log level printf data type mismatch
-
-
+    - add external configuration option
+    - fix log level printf data type mismatch
 
 * 1.0.0 
-- initial version, extract from esp-idf logger
-- add pointer for hexdump and fix stack overflow in hd_buffer
+    - initial version, extract from esp-idf logger
+   - add pointer for hexdump and fix stack overflow in hd_buffer
